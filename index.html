@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Ordena el cuento</title>
 <style>
-:root{--bg:#eef3f7;--card:#fff;--ink:#1f2d3a;--mute:#52616f;--acc:#2f6690;--accink:#fff;--ok:#2a6f5c;--okbg:#e2f1ec;--try:#7a5200;--trybg:#fcf0d6;--line:#b9c7d3;--fs:1.2rem;--ls:0em}
-[data-theme=contraste]{--bg:#fff;--card:#fff;--ink:#000;--mute:#1a1a1a;--acc:#003a8c;--ok:#004d2c;--okbg:#e6f4ec;--try:#4d3200;--trybg:#fff3d6;--line:#000}
-[data-theme=oscuro]{--bg:#1d252c;--card:#27313a;--ink:#eef2f5;--mute:#b8c3cc;--acc:#8cbde3;--accink:#10202c;--ok:#93d6c0;--okbg:#25403a;--try:#f0c674;--trybg:#403620;--line:#55636f}
+:root{--bg:#e9f3f6;--card:#fff;--ink:#1b3a4b;--mute:#4d6572;--acc:#2b6f9e;--accink:#fff;--ok:#2f7d5b;--okbg:#e1f3e8;--try:#1f4e79;--trybg:#dcebf8;--line:#a9c4d3;--bank:#eaf6ef;--bankline:#8fc3a6;--fs:1.2rem;--ls:0em}
+[data-theme=contraste]{--bg:#fff;--card:#fff;--ink:#000;--mute:#1a1a1a;--acc:#003a8c;--ok:#004d2c;--okbg:#e6f4ec;--try:#002a66;--trybg:#e3ecfa;--line:#000;--bank:#e6f4ec;--bankline:#004d2c}
+[data-theme=oscuro]{--bg:#17262e;--card:#213640;--ink:#eaf3f6;--mute:#b3c6cf;--acc:#8cc3ea;--accink:#0e2230;--ok:#93d6c0;--okbg:#1f3d34;--try:#a9d3f5;--trybg:#1f3a52;--line:#4a6573;--bank:#1f3d34;--bankline:#4f8f78}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:var(--fs)/1.65 Verdana,"Trebuchet MS",system-ui,sans-serif;letter-spacing:var(--ls);word-spacing:calc(var(--ls)*2)}
 header{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;justify-content:space-between;padding:.6rem 1rem;border-bottom:2px solid var(--line);background:var(--card);font-size:1rem}
@@ -41,6 +41,26 @@ ol.slots li{display:flex;gap:.6rem;align-items:stretch}
 #msg:empty{background:transparent}
 .fin{background:var(--okbg);border:3px solid var(--ok);border-radius:16px;padding:1rem 1.4rem}
 small{color:var(--mute)}
+.card{background:var(--bank);border-color:var(--bankline)}
+body.juego{height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+body.juego header{padding:.3rem .8rem}
+body.juego main{flex:1;min-height:0;width:100%;max-width:72rem;padding:.5rem .8rem;display:flex;flex-direction:column;font-size:calc(var(--fs)*.85)}
+.bar{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;justify-content:space-between}
+.bar h2{font-size:1.15em;margin:0}
+.bar .row{margin:0}
+.bar button{min-height:44px;padding:.3rem .8rem;font-size:.9em}
+body.juego #msg{min-height:2.2em;margin:.4rem 0;padding:.35rem .8rem;font-size:.9em}
+.gwrap{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
+.col{overflow-y:auto;min-height:0;padding:.4rem;border-radius:14px}
+.col.izq{background:color-mix(in srgb,var(--acc) 10%,transparent)}
+.col.der{background:color-mix(in srgb,var(--ok) 12%,transparent)}
+.col h3{margin:.1rem 0 .4rem;font-size:.95em;color:var(--mute)}
+body.juego ol.slots,body.juego ul.bank{margin:0;gap:.4rem}
+body.juego .slot,body.juego .card{min-height:44px;padding:.3rem .6rem}
+.n{width:2em}
+.over{position:fixed;inset:0;background:rgba(15,40,55,.6);display:grid;place-items:center;padding:1rem;z-index:5}
+.over>div{background:var(--bg);border-radius:16px;max-width:42rem;max-height:90dvh;overflow:auto;padding:1rem 1.2rem}
+@media (max-width:520px){body.juego main{font-size:calc(var(--fs)*.72)}.n{width:1.8em}.snd{min-width:40px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -119,7 +139,7 @@ applyPref();
 
 /* Pantalla de inicio */
 function home(){
-  stop();st=null;
+  document.body.classList.remove('juego');stop();st=null;
   const res=store.get(KEY,[]);
   app.replaceChildren(
     el('h1',{},'¡Vamos a leer!'),
@@ -138,6 +158,7 @@ function csv(res){
 
 /* Lectura del cuento */
 function leer(i){
+  document.body.classList.remove('juego');
   const c=CUENTOS[i],ps=[];
   for(let k=0;k<c.frases.length;k+=3)ps.push(c.frases.slice(k,k+3).join(' '));
   st={i,c};
@@ -157,14 +178,15 @@ function jugar(){
   stop();
   const n=st.c.frases.length;
   Object.assign(st,{order:Array(n).fill(null),bank:shuffle(n),locked:new Set(),sel:null,intentos:0,primero:null,re:0,ver:false});
-  game();window.scrollTo(0,0);
+  game();say('Toca una frase y se colocará en el primer hueco libre. También puedes tocar un hueco para elegirlo.');
 }
 function game(foco){
-  const {c,order,bank,locked}=st,n=c.frases.length;
+  document.body.classList.add('juego');
+  const {c,order,bank,locked}=st;
   msg=el('div',{id:'msg',role:'status','aria-live':'polite'});
   const slots=el('ol',{class:'slots','aria-label':'Orden del cuento'},order.map((v,i)=>{
     let b;
-    if(v===null)b=el('button',{class:'slot'+(st.sel===i?' sel':''),'aria-label':'Hueco '+(i+1)+', vacío',onclick:()=>{st.sel=st.sel===i?null:i;game()}},st.sel===i?'Elige una frase de abajo':'Toca para elegir este hueco');
+    if(v===null)b=el('button',{class:'slot'+(st.sel===i?' sel':''),'aria-label':'Hueco '+(i+1)+', vacío',onclick:()=>{st.sel=st.sel===i?null:i;game()}},st.sel===i?'Elige una frase →':'…');
     else if(locked.has(i))b=el('button',{class:'slot ok','aria-disabled':'true','aria-label':'Correcta: '+c.frases[v]},'✓ '+c.frases[v]);
     else b=el('button',{class:'slot fill','aria-label':c.frases[v]+'. Toca para quitarla',onclick:()=>{order[i]=null;bank.push(v);game('bank')}},c.frases[v]);
     return el('li',{},el('span',{class:'n','aria-hidden':'true'},i+1),b);
@@ -172,18 +194,23 @@ function game(foco){
   const bk=el('ul',{class:'bank','aria-label':'Frases para colocar'},bank.map(v=>el('li',{},
     el('button',{class:'card txt',onclick:()=>poner(v)},c.frases[v]),
     el('button',{class:'snd','aria-label':'Escuchar frase',onclick:()=>speak(c.frases[v])},'🔊'))));
-  app.replaceChildren(
+  const story=st.ver?el('div',{class:'over',role:'dialog','aria-label':'El cuento'},el('div',{},
     el('h2',{},c.emoji+' '+c.titulo),
-    el('p',{},'Coloca las frases en el orden en que pasó la historia. Toca una frase para ponerla en el primer hueco libre.'),
-    el('div',{class:'row'},el('button',{onclick:()=>{if(!st.ver)st.re++;st.ver=!st.ver;game()}},st.ver?'Ocultar el cuento':'👀 Mirar el cuento')),
-    st.ver?el('div',{class:'lec'},c.frases.map(f=>f).reduce((a,f,k)=>{if(k%3===0)a.push(f);else a[a.length-1]+=' '+f;return a},[]).map(p=>el('p',{},p))):'',
-    slots,
-    bank.length?el('h3',{},'Frases por colocar ('+bank.length+')'):'',bk,
-    el('div',{class:'row'},el('button',{class:'main',id:'check',onclick:comprobar},'Comprobar'),el('button',{onclick:()=>{if(confirm('¿Salir de este cuento?'))home()}},'Salir')),
-    msg
-  );
-  const t=foco==='bank'?app.querySelector('.bank .txt'):foco==='check'?$('#check'):null;
-  if(t)t.focus({preventScroll:true});
+    ...Array.from({length:Math.ceil(c.frases.length/3)},(_,k)=>el('p',{},c.frases.slice(k*3,k*3+3).join(' '))),
+    el('button',{class:'main',id:'cerrar',onclick:()=>{st.ver=false;game('bank')}},'Cerrar el cuento'))):'';
+  app.replaceChildren(
+    el('div',{class:'bar'},el('h2',{},c.emoji+' '+c.titulo),
+      el('div',{class:'row'},
+        el('button',{onclick:()=>{st.re++;st.ver=true;game()}},'👀 Mirar el cuento'),
+        el('button',{class:'main',id:'check',onclick:comprobar},'Comprobar'),
+        el('button',{onclick:()=>{if(confirm('¿Salir de este cuento?'))home()}},'Salir'))),
+    msg,
+    el('div',{class:'gwrap'},
+      el('div',{class:'col izq'},el('h3',{},'Orden del cuento'),slots),
+      el('div',{class:'col der'},el('h3',{},bank.length?'Frases para colocar ('+bank.length+')':'¡Todas colocadas! Pulsa Comprobar'),bk)),
+    story);
+  if(st.ver)$('#cerrar').focus();
+  else{const t=foco==='bank'?app.querySelector('.bank .txt'):foco==='check'?$('#check'):null;if(t)t.focus({preventScroll:true})}
 }
 function poner(v){
   const {order,bank}=st;
@@ -203,6 +230,7 @@ function comprobar(){
   say('¡Buen trabajo! '+locked.size+' de '+n+' frases están en su sitio. Las demás han vuelto abajo. Piensa qué pasó antes y qué pasó después, e inténtalo otra vez.');
 }
 function fin(){
+  document.body.classList.remove('juego');
   const {c,intentos,primero,re}=st,n=c.frases.length;
   const r=store.get(KEY,[]);
   r.push({fecha:new Date().toISOString().slice(0,16).replace('T',' '),nombre,cuento:c.titulo,intentos,primero,total:n,re});
